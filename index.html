@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -11,6 +10,11 @@
   
   <!-- Lucide Icons CDN -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Flatpickr for Cross-browser Localized Datepicker -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
 
   <!-- Custom Styles for Animations -->
   <style>
@@ -26,36 +30,42 @@
       from { transform: scale(0.95); opacity: 0; }
       to { transform: scale(1); opacity: 1; }
     }
-    
-    .animate-fade-in {
-      animation: fadeIn 0.4s ease-out forwards;
-    }
-    .animate-slide-up {
-      animation: slideUp 0.5s ease-out forwards;
-    }
-    .animate-zoom-in {
-      animation: zoomIn 0.3s ease-out forwards;
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
     }
     
+    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+    .animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
+    .animate-zoom-in { animation: zoomIn 0.3s ease-out forwards; }
+    .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+    
+    .input-error {
+      border-color: #ef4444 !important;
+      background-color: #fef2f2 !important;
+    }
+    .input-error + div > i {
+      color: #ef4444 !important;
+    }
+
     /* Ẩn thanh cuộn nhưng vẫn cuộn được */
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased selection:bg-sky-200">
 
+  <!-- THANH TIẾN TRÌNH CUỘN (SCROLL PROGRESS BAR) -->
+  <div id="progress-container" class="fixed top-0 left-0 w-full h-1.5 bg-slate-200 z-[100] hidden">
+    <div id="progress-bar" class="h-full bg-gradient-to-r from-sky-400 to-sky-600 w-0 transition-all duration-150 rounded-r-full shadow-[0_0_10px_rgba(56,189,248,0.5)]"></div>
+  </div>
+
   <!-- MÀN HÌNH CHỌN NGÔN NGỮ (LANGUAGE SELECTION) -->
   <div id="language-screen" class="fixed inset-0 z-50 overflow-y-auto bg-slate-900">
-    <!-- Hình nền và hiệu ứng (Cố định) -->
     <img src="https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" alt="Đà Nẵng Cầu Rồng" class="fixed inset-0 w-full h-full object-cover opacity-40 mix-blend-overlay">
     <div class="fixed inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
     
-    <!-- Wrapper cuộn dọc để chống cắt màn hình trên trình duyệt Zalo -->
     <div class="min-h-full flex items-center justify-center p-4">
       <div class="bg-white/95 backdrop-blur-md rounded-2xl sm:rounded-3xl shadow-2xl p-5 sm:p-8 max-w-[92%] sm:max-w-lg w-full text-center relative z-10 animate-zoom-in my-8">
         
@@ -105,9 +115,18 @@
   </div>
 
   <!-- MÀN HÌNH CHÍNH (MAIN FORM SCREEN) -->
-  <div id="main-screen" class="min-h-screen pb-12 hidden animate-fade-in">
+  <div id="main-screen" class="min-h-screen hidden animate-fade-in pb-0">
     <!-- Hero Section -->
     <div class="relative h-auto min-h-[220px] sm:h-[40vh] sm:min-h-[300px] w-full bg-slate-900 overflow-hidden shadow-lg flex flex-col justify-end pb-8 sm:pb-14 pt-10 sm:pt-16">
+      
+      <!-- Nút chuyển đổi ngôn ngữ trên màn hình chính -->
+      <div class="absolute top-4 right-4 sm:top-6 sm:right-6 z-30 animate-fade-in">
+        <div class="bg-black/30 backdrop-blur-md border border-white/10 rounded-full p-1 flex items-center shadow-lg">
+          <button id="btn-switch-vi" type="button" onclick="selectLanguage('vi')" class="px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all">VN</button>
+          <button id="btn-switch-en" type="button" onclick="selectLanguage('en')" class="px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all">EN</button>
+        </div>
+      </div>
+
       <img src="https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" alt="Đà Nẵng" class="absolute inset-0 w-full h-full object-cover opacity-50 mix-blend-overlay scale-105">
       <div class="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent"></div>
       
@@ -129,7 +148,7 @@
     </div>
 
     <!-- Form Section -->
-    <div class="max-w-4xl mx-auto px-3 sm:px-4 -mt-6 sm:-mt-8 relative z-20">
+    <div class="max-w-4xl mx-auto px-3 sm:px-4 -mt-6 sm:-mt-8 relative z-20 pb-32 sm:pb-0">
       <form id="registrationForm" class="space-y-6 sm:space-y-8">
         
         <!-- Lời ngỏ -->
@@ -154,15 +173,30 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
             <div>
               <label id="t-fullName" class="block text-sm font-bold text-slate-700 mb-2"></label>
-              <input required type="text" name="fullName" id="input-fullName" class="w-full px-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 hover:border-sky-400 hover:scale-[1.02] focus:scale-[1.02] focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all duration-300 text-slate-800 font-medium shadow-sm">
+              <div class="relative transition-all duration-300 hover:scale-[1.02] focus-within:scale-[1.02]">
+                <input required type="text" name="fullName" id="input-fullName" class="peer w-full pl-11 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all text-slate-800 font-medium shadow-sm relative z-0">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                  <i data-lucide="user" class="w-5 h-5 text-sky-400 peer-focus:text-sky-600 transition-colors"></i>
+                </div>
+              </div>
             </div>
             <div>
               <label id="t-phone" class="block text-sm font-bold text-slate-700 mb-2"></label>
-              <input required type="tel" name="phone" placeholder="0909..." class="w-full px-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 hover:border-sky-400 hover:scale-[1.02] focus:scale-[1.02] focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all duration-300 text-slate-800 font-medium shadow-sm">
+              <div class="relative transition-all duration-300 hover:scale-[1.02] focus-within:scale-[1.02]">
+                <input required type="tel" name="phone" id="input-phone" placeholder="0909..." class="peer w-full pl-11 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all text-slate-800 font-medium shadow-sm relative z-0">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                  <i data-lucide="phone" class="w-5 h-5 text-sky-400 peer-focus:text-sky-600 transition-colors"></i>
+                </div>
+              </div>
             </div>
             <div class="md:col-span-2">
               <label id="t-workplace" class="block text-sm font-bold text-slate-700 mb-2"></label>
-              <input required type="text" name="workplace" id="input-workplace" class="w-full px-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 hover:border-sky-400 hover:scale-[1.02] focus:scale-[1.02] focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all duration-300 text-slate-800 font-medium shadow-sm">
+              <div class="relative transition-all duration-300 hover:scale-[1.02] focus-within:scale-[1.02]">
+                <input required type="text" name="workplace" id="input-workplace" class="peer w-full pl-11 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:border-sky-500 outline-none transition-all text-slate-800 font-medium shadow-sm relative z-0">
+                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                  <i data-lucide="building" class="w-5 h-5 text-sky-400 peer-focus:text-sky-600 transition-colors"></i>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -202,11 +236,30 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
               <div>
                 <label id="t-arrival" class="block text-sm font-bold text-slate-700 mb-2"></label>
-                <input type="datetime-local" name="arrivalFlight" class="w-full px-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 hover:border-sky-400 hover:scale-[1.02] focus:scale-[1.02] focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-300 text-slate-800 font-medium shadow-sm">
+                <div class="relative transition-all duration-300 hover:scale-[1.02] focus-within:scale-[1.02]">
+                  <input type="text" id="arrivalFlight" name="arrivalFlight" class="peer w-full pl-11 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 font-medium shadow-sm relative z-0">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                    <i data-lucide="plane-landing" class="w-5 h-5 text-indigo-400 peer-focus:text-indigo-600 transition-colors"></i>
+                  </div>
+                </div>
               </div>
               <div>
                 <label id="t-departure" class="block text-sm font-bold text-slate-700 mb-2"></label>
-                <input type="datetime-local" name="departureFlight" class="w-full px-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 hover:border-sky-400 hover:scale-[1.02] focus:scale-[1.02] focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all duration-300 text-slate-800 font-medium shadow-sm">
+                <div class="relative transition-all duration-300 hover:scale-[1.02] focus-within:scale-[1.02]">
+                  <input type="text" id="departureFlight" name="departureFlight" class="peer w-full pl-11 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 font-medium shadow-sm relative z-0">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                    <i data-lucide="plane-takeoff" class="w-5 h-5 text-indigo-400 peer-focus:text-indigo-600 transition-colors"></i>
+                  </div>
+                </div>
+              </div>
+              <div class="md:col-span-2">
+                <label id="t-flightNumber" class="block text-sm font-bold text-slate-700 mb-2"></label>
+                <div class="relative transition-all duration-300 hover:scale-[1.02] focus-within:scale-[1.02]">
+                  <input type="text" name="flightNumber" id="input-flightNumber" class="peer w-full pl-11 pr-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-slate-800 font-medium shadow-sm relative z-0">
+                  <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                    <i data-lucide="hash" class="w-5 h-5 text-indigo-400 peer-focus:text-indigo-600 transition-colors"></i>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -240,11 +293,23 @@
             </div>
 
             <div class="bg-teal-50 border-l-4 border-teal-500 rounded-r-xl p-4 sm:p-5 mb-6 sm:mb-8 shadow-sm">
-              <p class="text-sm text-teal-900 leading-relaxed">
-                <span id="t-hotelNote1"></span> <br/>
-                <strong id="t-hotelNote2" class="text-teal-950 text-sm sm:text-base block mt-1"></strong> 
-                <span id="t-hotelNote3" class="text-teal-800"></span>
+              <p class="text-sm text-teal-900 leading-relaxed mb-3">
+                <span id="t-hotelNote1"></span>
               </p>
+              <a href="https://www.google.com/maps/search/?api=1&query=Royal+Lotus+Hotel+Da+Nang" target="_blank" class="group flex items-center justify-between bg-white border border-teal-100 p-3 sm:p-4 rounded-xl shadow-sm hover:shadow-md hover:border-teal-300 transition-all duration-300 active:scale-[0.98]">
+                <div class="flex items-start gap-3">
+                  <div class="p-2 bg-teal-50 text-teal-600 rounded-lg group-hover:bg-teal-100 group-hover:text-teal-700 transition-colors shrink-0 mt-0.5">
+                    <i data-lucide="map-pin" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <strong id="t-hotelNote2" class="text-teal-900 text-sm sm:text-base block group-hover:text-teal-700 transition-colors"></strong> 
+                    <span id="t-hotelNote3" class="text-teal-600 text-[13px] sm:text-sm mt-0.5 block"></span>
+                  </div>
+                </div>
+                <div class="text-teal-400 group-hover:text-teal-600 transition-colors shrink-0 pl-2">
+                  <i data-lucide="external-link" class="w-5 h-5"></i>
+                </div>
+              </a>
             </div>
 
             <div class="space-y-6 sm:space-y-8">
@@ -270,17 +335,34 @@
               <div id="hotel-details" class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 pt-5 sm:pt-6 border-t border-slate-100 animate-fade-in">
                 <div>
                   <label id="t-stayDuration" class="block text-sm font-bold text-slate-700 mb-2"></label>
-                  <select name="stayDuration" class="w-full px-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 hover:border-sky-400 hover:scale-[1.02] focus:scale-[1.02] focus:bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all duration-300 text-slate-800 font-medium shadow-sm cursor-pointer">
-                    <option id="t-day1" value="1"></option>
-                    <option id="t-day2" value="2" selected></option>
-                  </select>
+                  <div class="relative transition-all duration-300 hover:scale-[1.02] focus-within:scale-[1.02]">
+                    <select name="stayDuration" class="peer appearance-none w-full pl-11 pr-10 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all text-slate-800 font-medium shadow-sm cursor-pointer relative z-0">
+                      <option id="t-day1" value="1"></option>
+                      <option id="t-day2" value="2" selected></option>
+                      <option id="t-day3" value="3"></option>
+                    </select>
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                      <i data-lucide="calendar-days" class="w-5 h-5 text-teal-400 peer-focus:text-teal-600 transition-colors"></i>
+                    </div>
+                    <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none z-10">
+                      <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400"></i>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label id="t-roomType" class="block text-sm font-bold text-slate-700 mb-2"></label>
-                  <select name="roomType" class="w-full px-4 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 hover:border-sky-400 hover:scale-[1.02] focus:scale-[1.02] focus:bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all duration-300 text-slate-800 font-medium shadow-sm cursor-pointer">
-                    <option id="t-single" value="single" selected></option>
-                    <option id="t-double" value="double"></option>
-                  </select>
+                  <div class="relative transition-all duration-300 hover:scale-[1.02] focus-within:scale-[1.02]">
+                    <select name="roomType" class="peer appearance-none w-full pl-11 pr-10 py-2.5 sm:py-3 rounded-xl bg-slate-50 border-2 border-sky-200 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition-all text-slate-800 font-medium shadow-sm cursor-pointer relative z-0">
+                      <option id="t-single" value="single" selected></option>
+                      <option id="t-double" value="double"></option>
+                    </select>
+                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none z-10">
+                      <i data-lucide="bed-double" class="w-5 h-5 text-teal-400 peer-focus:text-teal-600 transition-colors"></i>
+                    </div>
+                    <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none z-10">
+                      <i data-lucide="chevron-down" class="w-5 h-5 text-slate-400"></i>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -339,16 +421,19 @@
           </div>
         </div>
 
-        <!-- Submit Button -->
-        <div class="flex flex-col sm:flex-row justify-end pt-4 sm:pt-6 pb-12 sm:pb-16 px-1 sm:px-0">
-          <button type="submit" id="submit-btn" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white px-6 sm:px-10 py-3.5 sm:py-4 rounded-2xl font-extrabold text-base sm:text-lg shadow-xl shadow-sky-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 hover:shadow-sky-600/40">
-            <span id="submit-text"></span>
-            <i data-lucide="chevron-right" id="submit-icon" class="w-5 h-5 sm:w-6 sm:h-6"></i>
-          </button>
-        </div>
-
       </form>
     </div>
+    
+    <!-- MỚI: Sticky Nút Submit Footer -->
+    <div class="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md border-t border-slate-200 p-4 pb-6 sm:static sm:bg-transparent sm:border-none sm:p-0 sm:pb-16 z-40 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.1)] sm:shadow-none transition-transform duration-300">
+      <div class="max-w-4xl mx-auto px-1 sm:px-4 flex sm:justify-end">
+        <button type="submit" form="registrationForm" id="submit-btn" class="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white px-6 sm:px-10 py-3.5 sm:py-4 rounded-2xl font-extrabold text-base sm:text-lg shadow-xl shadow-sky-600/30 transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 hover:shadow-sky-600/40">
+          <span id="submit-text"></span>
+          <i data-lucide="chevron-right" id="submit-icon" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+        </button>
+      </div>
+    </div>
+    
   </div>
 
   <!-- JAVASCRIPT LOGIC -->
@@ -356,7 +441,7 @@
     // Khởi tạo Icon
     lucide.createIcons();
 
-    // Dữ liệu Đa Ngôn Ngữ (Translations)
+    // Dữ liệu Đa Ngôn Ngữ
     const translations = {
       vi: {
         successTitle: 'Xác nhận thành công!',
@@ -379,6 +464,9 @@
         card2Title: 'Thông tin Di chuyển',
         arrival: 'Thời gian chuyến bay ĐẾN (Đà Nẵng)',
         departure: 'Thời gian chuyến bay ĐI (Từ Đà Nẵng)',
+        flightNumber: 'Số hiệu chuyến bay ĐẾN',
+        placeholderFlight: 'VD: VN123',
+        placeholderDate: 'Chọn ngày giờ...',
         transferQ: 'Quý Đại biểu có cần xe đưa đón sân bay không?',
         needTransfer: 'Có, cần đưa đón',
         noTransfer: 'Không, tôi tự túc',
@@ -392,6 +480,7 @@
         stayDuration: 'Số ngày lưu trú',
         day1: '1 Ngày (19/06)',
         day2: '2 Ngày (19/06 - 20/06)',
+        day3: '3 Ngày (18/06 - 20/06)',
         roomType: 'Yêu cầu loại phòng',
         single: 'Phòng Đơn (Single Room)',
         double: 'Phòng Đôi (Double/Twin Room)',
@@ -429,6 +518,9 @@
         card2Title: 'Transportation',
         arrival: 'Arrival Flight Time (to Da Nang)',
         departure: 'Departure Flight Time (from Da Nang)',
+        flightNumber: 'Arrival Flight Number',
+        placeholderFlight: 'Ex: VN123',
+        placeholderDate: 'Select date & time...',
         transferQ: 'Do you need airport transfer?',
         needTransfer: 'Yes, I need transfer',
         noTransfer: 'No, self-sufficient',
@@ -442,6 +534,7 @@
         stayDuration: 'Stay Duration',
         day1: '1 Day (June 19)',
         day2: '2 Days (June 19 - 20)',
+        day3: '3 Days (June 18 - 20)',
         roomType: 'Room Type Request',
         single: 'Single Room',
         double: 'Double/Twin Room',
@@ -467,13 +560,12 @@
       currentLanguage = lang;
       const t = translations[lang];
 
-      // Cập nhật text content
       const elementsToTranslate = [
         'successTitle', 'successMsg', 'successNote', 'heroTag', 'heroTitle', 'heroLoc', 'heroDate', 'introText',
         'card1Title', 'fullName', 'phone', 'workplace', 'attendance', 'attending', 'notAttending',
-        'card2Title', 'arrival', 'departure', 'transferQ', 'needTransfer', 'noTransfer', 'card3Title',
+        'card2Title', 'arrival', 'departure', 'flightNumber', 'transferQ', 'needTransfer', 'noTransfer', 'card3Title',
         'hotelNote1', 'hotelNote2', 'hotelNote3', 'useHotelQ', 'useHotel', 'noHotel', 'stayDuration',
-        'day1', 'day2', 'roomType', 'single', 'double', 'card4Title', 'dinnerTitle', 'dinnerTime',
+        'day1', 'day2', 'day3', 'roomType', 'single', 'double', 'card4Title', 'dinnerTitle', 'dinnerTime',
         'join', 'notJoin', 'vegQ', 'vegYes', 'vegNo', 'editBtn', 'doneBtn'
       ];
 
@@ -482,20 +574,52 @@
         if (el) el.textContent = t[id];
       });
 
-      // Cập nhật placeholders & btn
       document.getElementById('input-fullName').placeholder = t.placeholderName;
       document.getElementById('input-workplace').placeholder = t.placeholderWork;
+      document.getElementById('input-flightNumber').placeholder = t.placeholderFlight;
       document.getElementById('submit-text').textContent = t.submitBtn;
 
-      // Chuyển màn hình
+      // Khởi tạo lại bộ chọn ngày giờ (Flatpickr) theo ngôn ngữ
+      const dateConfig = {
+        enableTime: true,
+        dateFormat: "d/m/Y H:i",
+        time_24hr: true,
+        locale: lang === 'vi' ? 'vn' : 'default',
+        allowInput: true
+      };
+      
+      const arrivalInput = document.getElementById('arrivalFlight');
+      const departureInput = document.getElementById('departureFlight');
+      
+      if (arrivalInput._flatpickr) arrivalInput._flatpickr.destroy();
+      if (departureInput._flatpickr) departureInput._flatpickr.destroy();
+      
+      flatpickr(arrivalInput, dateConfig);
+      flatpickr(departureInput, dateConfig);
+      
+      arrivalInput.placeholder = t.placeholderDate;
+      departureInput.placeholder = t.placeholderDate;
+
+      // Cập nhật giao diện nút chuyển ngôn ngữ trên màn hình chính
+      const btnVi = document.getElementById('btn-switch-vi');
+      const btnEn = document.getElementById('btn-switch-en');
+      
+      if (lang === 'vi') {
+        btnVi.className = "px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all bg-white text-slate-900 shadow-sm pointer-events-none";
+        btnEn.className = "px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all text-white hover:text-sky-200 cursor-pointer";
+      } else {
+        btnEn.className = "px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all bg-white text-slate-900 shadow-sm pointer-events-none";
+        btnVi.className = "px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-bold transition-all text-white hover:text-sky-200 cursor-pointer";
+      }
+
       document.getElementById('language-screen').classList.add('hidden');
       document.getElementById('main-screen').classList.remove('hidden');
+      document.getElementById('progress-container').classList.remove('hidden');
     }
 
     // 2. Logic Hiển thị các khối theo điều kiện
     const isAttendingRadios = document.querySelectorAll('input[name="isAttending"]');
     const conditionalSections = document.getElementById('conditional-sections');
-    
     isAttendingRadios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         if (e.target.value === 'yes') {
@@ -510,7 +634,6 @@
 
     const useHotelRadios = document.querySelectorAll('input[name="useHotel"]');
     const hotelDetails = document.getElementById('hotel-details');
-
     useHotelRadios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         if (e.target.value === 'yes') {
@@ -527,10 +650,37 @@
     function editForm() {
       document.getElementById('success-screen').classList.add('hidden');
       document.getElementById('main-screen').classList.remove('hidden');
+      document.getElementById('progress-container').classList.remove('hidden');
     }
 
-    // 4. Xử lý Gửi Form
+    // 4. Thanh tiến trình cuộn trang
+    window.addEventListener('scroll', () => {
+      if (document.getElementById('main-screen').classList.contains('hidden')) return;
+      const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+      const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const scrolled = height > 0 ? (winScroll / height) * 100 : 0;
+      document.getElementById('progress-bar').style.width = scrolled + '%';
+    });
+
+    // 5. Hiệu ứng rung lắc báo lỗi điền form
     const form = document.getElementById('registrationForm');
+    const requiredInputs = form.querySelectorAll('input[required]');
+    
+    requiredInputs.forEach(input => {
+      input.addEventListener('invalid', (e) => {
+        const wrapper = input.closest('.relative');
+        if (wrapper) {
+          wrapper.classList.add('animate-shake');
+          input.classList.add('input-error');
+          setTimeout(() => wrapper.classList.remove('animate-shake'), 400);
+        }
+      });
+      input.addEventListener('input', () => {
+        input.classList.remove('input-error');
+      });
+    });
+
+    // 6. Xử lý Gửi Form
     const submitBtn = document.getElementById('submit-btn');
     const submitText = document.getElementById('submit-text');
     const submitIcon = document.getElementById('submit-icon');
@@ -538,32 +688,27 @@
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
 
-      // Hiển thị trạng thái Loading
       submitBtn.disabled = true;
       submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
       submitBtn.classList.remove('hover:scale-[1.02]', 'active:scale-95');
       submitText.textContent = translations[currentLanguage].submitting;
       submitIcon.classList.add('hidden');
 
-      // Gom dữ liệu từ Form
       const formData = new FormData(form);
       const params = new URLSearchParams(formData).toString();
       
-      // BƯỚC 1: ĐƯỜNG LINK APPS SCRIPT
       const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwyqkyxqG_DMZM8KtRY7_5IWKw3g5PZP0vTbCHV6aTKGPTkIJalx1TnPaVl5t93GzKK/exec';
 
       try {
         await fetch(SCRIPT_URL, {
           method: 'POST',
           mode: 'no-cors',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: params
         });
         
-        // Thành công: Đổi màn hình
         document.getElementById('main-screen').classList.add('hidden');
+        document.getElementById('progress-container').classList.add('hidden');
         document.getElementById('success-screen').classList.remove('hidden');
 
       } catch (error) {
@@ -573,12 +718,12 @@
           await fetch(getUrl, { mode: 'no-cors' });
           
           document.getElementById('main-screen').classList.add('hidden');
+          document.getElementById('progress-container').classList.add('hidden');
           document.getElementById('success-screen').classList.remove('hidden');
         } catch (fallbackError) {
           alert(currentLanguage === 'vi' ? 'Lỗi mạng! Vui lòng kiểm tra lại kết nối.' : 'Network error! Please check your connection.');
         }
       } finally {
-        // Trả lại trạng thái nút
         submitBtn.disabled = false;
         submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
         submitBtn.classList.add('hover:scale-[1.02]', 'active:scale-95');
